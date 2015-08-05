@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+    <head>
+	<title>KWIC</title>
+
+	<meta charset="utf-8"> 
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<link href="Libraly/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+	<link href="Libraly/css/jquery.dynatable.css" rel="stylesheet" type="text/css"/>
+
+	<script src="Libraly/jquery-2.1.3.min.js" type="text/javascript"></script>
+	<script src="Libraly/jquery.dynatable.js" type="text/javascript"></script>
+
+	<script src="Libraly/bootstrap.min.js" type="text/javascript"></script>
+	<script src="../Dictionary/Thai_Stop_Word_Default.js" type="text/javascript"></script>
+	<script src="../Dictionary/Thai_Word_Default.js" type="text/javascript"></script>
+
+	<script type="text/javascript">
+	    var arr_ans = []; // [str,arr_stat,index_w]
+	    arr_ans[0] = ""; //str_for_analysis 
+	    arr_ans[1] = []; //arr_stat -> arr of obj (index : word: count)
+	    arr_ans[2] = 1; //index_w
+	    arr_ans[3] = ""; //temp_text original
+	    arr_ans[4] = ""; //cut_text
+	    arr_ans[5] = []; //array_for_eachword_after_cuttext
+
+	    window.onload = function () {
+		$('#result_of_analysis').hide();
+		document.getElementById('check_remove').checked = true;
+
+		var fileInput = document.getElementById('fileInput');
+		var fileInputList = document.getElementById('fileInputList');
+		var preview_text = document.getElementById('preview_text');
+		fileInput.addEventListener('change', function (e) {
+//		    console.log(fileInput.files);
+		    var file = fileInput.files[0];
+		    var reader = new FileReader();
+		    reader.onload = function (e) {
+			arr_ans[0] += reader.result + " ";
+			arr_ans[3] += reader.result + " ";
+			preview_text.innerHTML +=
+				"<br/>" + file.name +
+				"<textarea readonly name='text_ori' class='form-control' rows='5'>"
+				+ reader.result + "</textarea>";
+		    };
+		    reader.readAsText(file, 'windows-874');
+		});
+		fileInputList.addEventListener('change', function (e) {
+//		    console.log(fileInputList.files);
+		    var fileList = fileInputList.files;
+		    for (var i = 0; i < fileList.length; i++) {
+			//for multiple files
+			var file = fileList[i];
+			(function (file) {
+			    var reader = new FileReader();
+			    reader.onload = function (e) {
+				arr_ans[0] += reader.result + " ";
+				arr_ans[3] += reader.result + " ";
+				preview_text.innerHTML +=
+					"<br/>" + file.name +
+					"<textarea readonly name='text_ori' class='form-control' rows='5'>"
+					+ reader.result + "</textarea>";
+			    };
+			    reader.readAsText(file, 'windows-874');
+			})
+				(fileList[i]);
+		    }
+		});
+	    };
+
+	    function escapeRegExp(string) {
+		return string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+	    }
+	    function remove_stop_by_length(arr_stop, str) {
+		for (var j = 0; j < arr_stop.length; j++) {
+		    var find = arr_stop[j];
+		    if (str.indexOf(find) !== -1) {
+			var re = new RegExp(find, 'g');
+			str = str.replace(re, "");
+		    }
+		}
+		return str;
+	    }
+	    function word_segmentation_by_length(arr_ans, arr_word) {
+		for (var j = 0; j < arr_word.length; j++) {
+		    var find = arr_word[j];
+		    if ((arr_ans[0]).indexOf(find) !== -1) {
+			/* >> Put logic for learning new word with temp string << */
+			var count_this = 0;
+			while (arr_ans[0].indexOf(find) !== -1) { //count frequency too not use replace -g
+			    arr_ans[0] = arr_ans[0].replace(find, "{{" + arr_ans[2] + "}}");
+			    ++count_this;
+			}
+			arr_ans[1].push({"index_w": arr_ans[2], "word": find, /* "word_html": "<a href='javascript:void(0)'><span onclick='" + 'test_click("' + find + '")' + "'>" + find + "</span></a>",*/ "count": count_this});
+			++arr_ans[2];
+		    }
+		}
+		return arr_ans;
+	    }
+
+	    function show_data_in_table(dynat_variable, arr_of_obj) { //dynatable_fn
+		dynat_variable.settings.dataset.originalRecords = arr_of_obj;
+		dynat_variable.process();
+	    }
+
+	    function concordance() {
+		//////////////////////Check & Refresh Value////////////////////////////////
+		if (arr_ans[0] === "") {
+		    alert("Please Choose Text File");
+		    return;
+		}
+		arr_ans[1] = [];
+		arr_ans[0] = arr_ans[3];
+		arr_ans[2] = 1;
+		/////////////////////////////////////////////////////
+		var special_word = document.getElementById("spec_word").value.split('\n');
+		if (special_word[0] === "") {
+		    alert("กรุณาเลือกคำที่สนใจ (Keyword)");
+		    return;
+		}
+
+		if (document.getElementById('check_remove').checked === true) {
+		    arr_ans[0] = remove_stop_by_length(sw_14, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_13, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_12, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_11, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_10, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_9, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_8, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_7, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_6, arr_ans[0]);
+
+		    arr_ans = word_segmentation_by_length(arr_ans, special_word);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_14);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_13);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_12);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_11);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_10);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_9);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_8);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_7);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_6);
+
+		    arr_ans[0] = remove_stop_by_length(sw_5, arr_ans[0]);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_5);
+		    arr_ans[0] = remove_stop_by_length(sw_4, arr_ans[0]);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_4);
+		    arr_ans[0] = remove_stop_by_length(sw_3, arr_ans[0]);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_3);
+		    arr_ans[0] = remove_stop_by_length(sw_2, arr_ans[0]);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_2);
+		}
+		else {
+		    arr_ans = word_segmentation_by_length(arr_ans, special_word);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_14);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_13);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_12);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_11);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_10);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_9);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_8);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_7);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_6);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_5);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_4);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_3);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_2);
+		}
+		$('#result_of_analysis').show();
+
+		var str_for_space = arr_ans[0];
+
+		for (var i = 0; i < (arr_ans[1].length); i++) {
+		    var find = "{{" + arr_ans[1][i].index_w + "}}";
+		    var re = new RegExp(escapeRegExp(find), 'g');
+		    str_for_space = str_for_space.replace(re, (arr_ans[1][i].word) + " ");
+		}
+
+		////////////////////////////////////////////////////////
+		var find_rn = "\r\n";
+		var replace = new RegExp(escapeRegExp(find_rn), 'g');
+		str_for_space = str_for_space.replace(replace, "");
+		///////////////////////////////////////////////////////
+
+		arr_ans[4] = str_for_space;
+
+		arr_ans[5] = arr_ans[4].split(" ");
+		while (true) {
+		    var index = arr_ans[5].indexOf("");
+		    //console.log(index);
+		    if (index > -1) {
+			arr_ans[5].splice(index, 1);
+		    } else {
+			break;
+		    }
+		}
+		//console.log(arr_ans[5]);
+
+		var concor_arr_of_obj = [];
+		for (var j = 0; j < special_word.length; j++) {
+		    var keyword = special_word[j];
+		    //console.log(keyword);
+		    for (var k = 0; k < arr_ans[5].length; k++) {
+			//console.log(arr_ans[5][k]);
+			if (arr_ans[5][k] === keyword) {
+			    concor_arr_of_obj.push({
+				"-10": arr_ans[5][k - 10],
+				"-9": arr_ans[5][k - 9],
+				"-8": arr_ans[5][k - 8],
+				"-7": arr_ans[5][k - 7],
+				"-6": arr_ans[5][k - 6],
+				"-5": arr_ans[5][k - 5],
+				"-4": arr_ans[5][k - 4],
+				"-3": arr_ans[5][k - 3],
+				"-2": arr_ans[5][k - 2],
+				"-1": arr_ans[5][k - 1],
+				"key": arr_ans[5][k],
+				"+1": arr_ans[5][k + 1],
+				"+2": arr_ans[5][k + 2],
+				"+3": arr_ans[5][k + 3],
+				"+4": arr_ans[5][k + 4],
+				"+5": arr_ans[5][k + 5],
+				"+6": arr_ans[5][k + 6],
+				"+7": arr_ans[5][k + 7],
+				"+8": arr_ans[5][k + 8],
+				"+9": arr_ans[5][k + 9],
+				"+10": arr_ans[5][k + 10]
+			    });
+			} else {
+			    continue;
+			}
+		    }
+		}
+		//console.log(concor_arr_of_obj);
+		show_data_in_table(con_dynat, concor_arr_of_obj);
+		alert("Process Complete");
+	    }
+
+	</script>
+    </head>
+    <body>
+	<div class="container">
+	    <div class="jumbotron">
+		<div class="panel panel-default">
+		    <div class="panel-heading"><h4>Choose Text File</h4></div>
+		    <center><div style="width: 96%" id="preview_text"></div></center>
+		    <div class="panel-body">
+			<span id="choose_file" class="btn btn-primary btn-file">
+			    <span class="glyphicon glyphicon-file"> </span>
+			    Choose 1 Text File ...
+			    <input type="file" id="fileInput"  accept=".txt, .xml" />
+			</span> &nbsp;
+
+			<span id="choose_multifiles" class="btn btn-primary btn-file">
+			    <span class="glyphicon glyphicon-list-alt"> </span>
+			    Choose More Text Files ...
+			    <input type="file" id="fileInputList" accept=".txt, .xml" multiple />
+			</span>
+		    </div>
+		</div>
+
+		<div class="panel panel-default">
+		    <div class="panel-heading">
+			<h4>Option</h4>
+		    </div>
+		    <div class="panel-body">
+			<input type="checkbox" id="check_remove" checked/><b> &nbsp; Remove Stop Word</b>
+			<div class="container-fluid">
+			    <br/>
+			    <div class="col-md-6">
+				<b>Keyword (คำที่สนใจ)<br/><br/></b>
+				<textarea id='spec_word' class='form-control' rows='6'></textarea>
+			    </div>
+
+			    <div class="col-md-6">
+				<b>คำหยุดที่ต้องการเพิ่มเติม (Unavailable now...)<br/><br/></b>
+				<textarea disabled id='spec_sw' class='form-control' rows='6'></textarea>
+			    </div>
+			</div> 
+		    </div>
+		</div>
+
+		<button class="btn btn-success" onclick="concordance()" style="width: 100%" >
+		    <b>Concordance</b>
+		</button>
+	    </div>
+	    <div id="result_of_analysis">
+		<div class="col-md-12">
+		    <table class="table table-bordered" id="concordance-table">
+			<colgroup>
+			    <col>
+			    <col>
+			    <col>
+			    <col>
+			    <col>
+			    <col class="info">
+			</colgroup>
+			<thead>
+			    <!-- <th class="col-md-1" data-dynatable-column="-10">
+				 <span style="color:black">-10</span>
+			     </th>
+			     <th class="col-md-1" data-dynatable-column="-9">
+				  <span style="color:black">-9</span>
+			     </th>
+			     <th class="col-md-1" data-dynatable-column="-8">
+				  <span style="color:black">-8</span>
+			     </th>
+			     <th class="col-md-1" data-dynatable-column="-7">
+				  <span style="color:black">-7</span>
+			     </th>
+			     <th class="col-md-1" data-dynatable-column="-6">
+				  <span style="color:black">-6</span>
+			     </th>-->
+			<th class="col-md-1" data-dynatable-column="-5">
+			    <span style="color:black">-5</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="-4">
+			    <span style="color:black">-4</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="-3">
+			    <span style="color:black">-3</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="-2">
+			    <span style="color:black">-2</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="-1">
+			    <span style="color:black">-1</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="key">
+			    <span style="color:black">Key</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="+1">
+			    <span style="color:black">+1</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="+2">
+			    <span style="color:black">+2</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="+3">
+			    <span style="color:black">+3</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="+4">
+			    <span style="color:black">+4</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="+5">
+			    <span style="color:black">+5</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="+6">
+			    <span style="color:black">+6</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="+7">
+			    <span style="color:black">+7</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="+8">
+			    <span style="color:black">+8</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="+9">
+			    <span style="color:black">+9</span>
+			</th>
+			<th class="col-md-1" data-dynatable-column="+10">
+			    <span style="color:black">+10</span>
+			</th>	
+
+			</thead>
+			<tbody>
+
+			</tbody>
+		    </table>
+		</div>
+	    </div>
+	</div>
+
+
+	<br/><br/>
+	<script type="text/javascript" >
+	    var con_dynat = $('#concordance-table').dynatable({
+		features: {
+		    paginate: false
+		}
+	    }).data('dynatable');
+	</script>
+    </body>
+</html>

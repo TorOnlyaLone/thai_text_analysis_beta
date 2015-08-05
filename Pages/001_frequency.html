@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+    <head>
+	<title>Term Frequency</title>
+
+	<meta charset="utf-8"> 
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<link href="Libraly/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+	<link href="Libraly/css/jquery.dynatable.css" rel="stylesheet" type="text/css"/>
+
+	<script src="Libraly/jquery-2.1.3.min.js" type="text/javascript"></script>
+	<script src="Libraly/jquery.dynatable.js" type="text/javascript"></script>
+
+	<script src="Libraly/bootstrap.min.js" type="text/javascript"></script>
+	<script src="../Dictionary/Thai_Stop_Word_Default.js" type="text/javascript"></script>
+	<script src="../Dictionary/Thai_Word_Default.js" type="text/javascript"></script>
+
+	<script type="text/javascript">
+	    var arr_ans = []; // [str,arr_stat,index_w]
+	    arr_ans[0] = ""; //str_for_analysis 
+	    arr_ans[1] = []; //arr_stat arr_stat -> arr of obj (index : word: count)
+	    arr_ans[2] = 1; //index_w
+	    arr_ans[3] = ""; //temp_text original
+	    arr_ans[4] = ""; //cut_text
+
+	    window.onload = function () {
+		$('#result_of_analysis').hide();
+		document.getElementById('check_remove').checked = true;
+
+		var fileInput = document.getElementById('fileInput');
+		var fileInputList = document.getElementById('fileInputList');
+		var preview_text = document.getElementById('preview_text');
+		fileInput.addEventListener('change', function (e) {
+//		    console.log(fileInput.files);
+		    var file = fileInput.files[0];
+		    var reader = new FileReader();
+		    reader.onload = function (e) {
+			arr_ans[0] += reader.result + " ";
+			arr_ans[3] += reader.result + " ";
+			preview_text.innerHTML +=
+				"<br/>" + file.name +
+				"<textarea readonly name='text_ori' class='form-control' rows='5'>"
+				+ reader.result + "</textarea>";
+		    };
+		    reader.readAsText(file, 'windows-874');
+		});
+		fileInputList.addEventListener('change', function (e) {
+//		    console.log(fileInputList.files);
+		    var fileList = fileInputList.files;
+		    for (var i = 0; i < fileList.length; i++) {
+			//for multiple files
+			var file = fileList[i];
+			(function (file) {
+			    var reader = new FileReader();
+			    reader.onload = function (e) {
+				arr_ans[0] += reader.result + " ";
+				arr_ans[3] += reader.result + " ";
+				preview_text.innerHTML +=
+					"<br/>" + file.name +
+					"<textarea readonly name='text_ori' class='form-control' rows='5'>"
+					+ reader.result + "</textarea>";
+			    };
+			    reader.readAsText(file, 'windows-874');
+			})
+				(fileList[i]);
+		    }
+		});
+	    };
+	    function remove_stop_by_length(arr_stop, str) {
+		for (var j = 0; j < arr_stop.length; j++) {
+		    var find = arr_stop[j];
+		    if (str.indexOf(find) !== -1) {
+			var re = new RegExp(find, 'g');
+			str = str.replace(re, "");
+		    }
+		}
+		return str;
+	    }
+
+	    /*	    function remove_stop_by_length_after_segment(arr_stop,arr_all){
+	     for(var j = 0;j < arr_stop.length;j++){
+	     var find = " "+arr_stop[j]+" ";
+	     if(str.indexOf() !== -1){
+	     var re = new RegExp(find,'g');
+	     str_after_segment = str_after_segment.replace(re,"");
+	     } 
+	     }
+	     return str_after_segment;
+	     }
+	     */
+
+	    function word_segmentation_by_length(arr_ans, arr_word) {
+		for (var j = 0; j < arr_word.length; j++) {
+		    var find = arr_word[j];
+		    if ((arr_ans[0]).indexOf(find) !== -1) {
+			/* >> Put logic for learning new word with temp string << */
+			var count_this = 0;
+			while (arr_ans[0].indexOf(find) !== -1) { //count frequency too not use replace -g
+			    arr_ans[0] = arr_ans[0].replace(find, "{{" + arr_ans[2] + "}}");
+			    ++count_this;
+			}
+			arr_ans[1].push({"index_w": arr_ans[2], "word": find, "word_html": "<a href='javascript:void(0)'><span onclick='" + 'test_click("' + find + '")' + "'>" + find + "</span></a>", "count": count_this});
+			++arr_ans[2];
+		    }
+		}
+		return arr_ans;
+	    }
+
+	    function escapeRegExp(string) {
+		return string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+	    }
+
+
+	    function show_data_in_table(dynat_variable, arr_of_obj) { //dynatable_fn
+		//console.log(dynat_variable);
+		dynat_variable.settings.dataset.originalRecords = arr_of_obj;
+		dynat_variable.process();
+	    }
+
+	    function term_frequency() {
+		//////////////////////Check & Refresh Value////////////////////////////////
+		if (arr_ans[0] === "") {
+		    alert("Please Choose Text File");
+		    return;
+		}
+		arr_ans[1] = [];
+		arr_ans[0] = arr_ans[3];
+		arr_ans[2] = 1;
+		/////////////////////////////////////////////////////
+
+		var special_word = document.getElementById("spec_word").value.split('\n');
+
+		if (special_word[0] === "") {
+		    special_word = [];
+		}
+		//console.log(special_word);
+
+		//var special_sw = document.getElementById("spec_sw").value.split('\n');
+
+
+
+		if (document.getElementById('check_remove').checked === true) {
+		    arr_ans[0] = remove_stop_by_length(sw_14, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_13, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_12, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_11, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_10, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_9, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_8, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_7, arr_ans[0]);
+		    arr_ans[0] = remove_stop_by_length(sw_6, arr_ans[0]);
+
+		    arr_ans = word_segmentation_by_length(arr_ans, special_word);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_14);
+		     arr_ans = word_segmentation_by_length(arr_ans, w_13);
+		     arr_ans = word_segmentation_by_length(arr_ans, w_12);
+		     arr_ans = word_segmentation_by_length(arr_ans, w_11);
+		     arr_ans = word_segmentation_by_length(arr_ans, w_10);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_9);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_8);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_7);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_6);
+
+		    arr_ans[0] = remove_stop_by_length(sw_5, arr_ans[0]);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_5);
+		    arr_ans[0] = remove_stop_by_length(sw_4, arr_ans[0]);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_4);
+		    arr_ans[0] = remove_stop_by_length(sw_3, arr_ans[0]);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_3);
+		    arr_ans[0] = remove_stop_by_length(sw_2, arr_ans[0]);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_2);
+		}
+		else {
+		    arr_ans = word_segmentation_by_length(arr_ans, special_word);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_14);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_13);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_12);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_11);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_10);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_9);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_8);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_7);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_6);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_5);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_4);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_3);
+		    arr_ans = word_segmentation_by_length(arr_ans, w_2);
+		}
+
+		show_data_in_table(da, arr_ans[1]);
+		$('#result_of_analysis').show();
+
+		//console.log(arr_ans[0]); //str_for_analysis
+		//console.log(JSON.stringify(arr_ans[1])); //arr_stat
+		//document.getElementById('show_stat').innerHTML = JSON.stringify(arr_ans[1]);
+
+		var str_for_space = arr_ans[0];
+		//alert(arr_ans[1].length);
+
+		for (var i = 0; i < (arr_ans[1].length); i++) {
+		    var find = "{{" + arr_ans[1][i].index_w + "}}";
+		    //console.log(find);
+		    var re = new RegExp(escapeRegExp(find), 'g');
+		    str_for_space = str_for_space.replace(re, (arr_ans[1][i].word) + " ");
+		}
+		document.getElementById("tex_original").innerHTML = arr_ans[3];
+		document.getElementById("tex_cut").innerHTML = str_for_space;
+		arr_ans[4] = str_for_space;
+
+		alert("Process Complete");
+	    }
+	</script>
+    </head>
+    <body>
+	<div class="container">
+	    <div class="jumbotron">
+
+		<div class="panel panel-default">
+		    <div class="panel-heading"><h4>Choose Text File</h4></div>
+		    <center><div style="width: 96%" id="preview_text"></div></center>
+		    <div class="panel-body">
+			<span id="choose_file" class="btn btn-primary btn-file">
+			    <span class="glyphicon glyphicon-file"> </span>
+			    Choose 1 Text File ...
+			    <input type="file" id="fileInput"  accept=".txt, .xml" />
+			</span> &nbsp;
+
+			<span id="choose_multifiles" class="btn btn-primary btn-file">
+			    <span class="glyphicon glyphicon-list-alt"> </span>
+			    Choose More Text Files ...
+			    <input type="file" id="fileInputList" accept=".txt, .xml" multiple />
+			</span>
+		    </div>
+		</div>
+
+		<div class="panel panel-default">
+		    <div class="panel-heading">
+			<h4>Option</h4>
+		    </div>
+		    <div class="panel-body">
+			<input type="checkbox" id="check_remove" checked/><b> &nbsp; Remove Stop Word</b>
+			<div class="container-fluid">
+			    <br/>
+			    <div class="col-md-6">
+				<b>คำเฉพาะ (เช่น คำที่สนใจ,คำที่ไม่มีในพจนานุกรม)<br/><br/></b>
+				<textarea id='spec_word' class='form-control' rows='6'></textarea>
+			    </div>
+
+			    <div class="col-md-6">
+				<b>คำหยุดที่ต้องการเพิ่มเติม (Unavailable now...)<br/><br/></b>
+				<textarea disabled id='spec_sw' class='form-control' rows='6'></textarea>
+			    </div>
+			</div> 
+		    </div>
+		</div>
+
+		<button class="btn btn-success" onclick="term_frequency()" style="width: 100%" >
+		    <b>Term Frequency</b>
+		</button>
+	    </div>
+	    <div id="result_of_analysis">
+		<div class="col-md-6">
+		    <table class="table table-bordered table-striped" id="stat-table">
+			<thead>
+			<th class="col-md-4" data-dynatable-column="index_w">
+			    <span style="color:black">Order Length</span>
+			</th>
+			<th class="col-md-5"  data-dynatable-column="word_html">
+			    <span style="color:black">Term</span>
+			</th>
+			<th class="col-md-3"  data-dynatable-column="count">
+			    <span style="color:black">Frequency</span>
+			</th>
+			</thead>
+			<tbody>
+			</tbody>
+		    </table>
+		</div>
+		<div class="col-md-6">
+
+		    <div class="btn-group" data-toggle="buttons">
+			<label class="btn btn-default" actived>
+			    <input type="radio" name=""  value="pronoun" checked>
+			    คำสรรพนาม </label>
+			<label class="btn btn-default">
+			    <input type="radio" name=""  value="conjunction">
+			    คำสันธาน </label>
+			<label class="btn btn-default">
+			    <input type="radio" name="" value="preposition">
+			    คำบุพบท </label>
+		    </div>
+		    
+		    <h3>ข้อความต้นฉบับ</h3>
+		    <div contentEditable="true" class='text_area form-control' id="tex_original" style="height: 15em" ></div>
+		    <!--
+		    <h3>ผลของการตัดคำ</h3>
+		    <textarea id="tex_cut" class='form-control' rows="13" ></textarea>
+		    -->
+		    <h3>ผลของการตัดคำ</h3>
+		    <div contentEditable="true" class='text_area form-control' id="tex_cut" style="height: 15em" ></div>
+
+		</div>
+	    </div>
+	</div>
+
+
+	<br/><br/>
+	<script type="text/javascript" >
+	    var da = $('#stat-table').dynatable({
+		features: {
+		    paginate: false
+		}
+	    }).data('dynatable');
+
+	    function test_click(find_word) {
+		//alert(find_word);
+		//alert(arr_ans[3]);//document.getElementById("tex_original").innerHTML
+		//alert(arr_ans[4]);//document.getElementById("tex_cut").innerHTML;
+
+		var re = new RegExp(escapeRegExp(find_word), 'g');
+
+		document.getElementById("tex_original").innerHTML = arr_ans[3].replace(re, '<b><span class="big_span" style="color: red;">' + find_word + '</span></b>');
+		document.getElementById("tex_cut").innerHTML = arr_ans[4].replace(re, '<b><span class="big_span" style="color: red;">' + find_word + '</span></b>');
+	    }
+	</script>
+
+    </body>
+</html>
